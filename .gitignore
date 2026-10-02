@@ -1,0 +1,36 @@
+
+/node_modules
+# Dependencias
+/node_modules
+/.pnp
+.pnp.js
+
+# Código compilado de TypeScript (JS resultante)
+/dist
+/build
+/src/build
+
+# Variables de entorno y llaves / secretos (¡CRÍTICO PARA SEGURIDAD!)
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Archivos multimedia / subidas locales de usuarios o pruebas
+/src/build/imagenes/
+/src/imagenes/
+/uploads/
+
+# Logs de error y ejecución
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
+
+# Archivos del sistema operativo y editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
