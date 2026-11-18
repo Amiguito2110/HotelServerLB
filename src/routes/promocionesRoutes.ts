@@ -9,14 +9,32 @@ class PromocionesRoutes {
         this.config();
     }
 
-    config() : void{
+    // MITIGACIÓN CODE-01:
+    // Se uniforma la declaración del método config().
+    config(): void {
 
-        this.router.get('/mostrarTodasPromociones/',promocionesController.mostrarTodasPromociones);
-        this.router.post('/agregarPromociones/',  promocionesController.agregarPromociones);
-        this.router.delete('/eliminarPromocion/:id',  promocionesController.eliminarPromocion);
+        // MITIGACIÓN CODE-02:
+        // Se organiza el formato de las rutas.
+        // Consultar todas las promociones.
+        this.router.get(
+            '/mostrarTodasPromociones/',
+            promocionesController.mostrarTodasPromociones
+        );
 
+        // Agregar nuevas promociones.
+        this.router.post(
+            '/agregarPromociones/',
+            promocionesController.agregarPromociones
+        );
+
+        // Eliminar una promoción mediante su identificador.
+        this.router.delete(
+            '/eliminarPromocion/:id',
+            promocionesController.eliminarPromocion
+        );
     }
 }
 
 const promocionesRoutes = new PromocionesRoutes();
+
 export default promocionesRoutes.router;
