@@ -1,14 +1,17 @@
+
 import { Router } from 'express';
 import { rolesController } from '../controllers/rolesController';
 
-// MITIGACIÓN CODE-01:
-// Se conserva comentada la importación que no se utiliza.
-// import { validarToken } from '../middleware/auth';
+// SEGURIDAD [AUTH-07]:
+// Middleware que verifica la autenticación JWT.
+import { validarToken } from '../middleware/auth';
+
+// SEGURIDAD [AUTH-08]:
+// Middleware que consulta permisos desde MySQL.
+import { autorizarRoles, RolUsuario } from '../middleware/autorizarRoles';
 
 class RolesRoutes {
 
-    // MITIGACIÓN CODE-03:
-    // Se organiza la declaración del router.
     public router: Router = Router();
 
     constructor() {
@@ -17,34 +20,36 @@ class RolesRoutes {
 
     config(): void {
 
-        // MITIGACIÓN CODE-02:
-        // Se eliminó la ruta de prueba comentada.
-
-        // Ruta para consultar todos los roles.
+        // SEGURIDAD [AUTH-07, AUTH-08, AUTH-09]:
+        // Solo un Administrador autenticado puede
+        // consultar el catálogo de roles.
         this.router.get(
             '/mostrarTodosRoles/',
+            validarToken,
+            autorizarRoles(RolUsuario.ADMINISTRADOR),
             rolesController.mostrar_todos_roles
         );
 
-        // Ruta para consultar un rol por su identificador.
+        // PENDIENTE [AUTH-09]:
+        // Estas rutas necesitan autorización propia.
+        // Se conservaron durante esta primera prueba,
+        // pero NO deben quedar expuestas en producción.
+
         this.router.get(
             '/obtenerRol/:id',
             rolesController.listOne
         );
 
-        // Ruta para registrar un rol.
         this.router.post(
             '/crearRol/',
             rolesController.createRol
         );
 
-        // Ruta para actualizar un rol.
         this.router.put(
             '/actualizarRol/:id',
             rolesController.actualizarRol
         );
 
-        // Ruta para eliminar un rol.
         this.router.delete(
             '/eliminarRol/:id',
             rolesController.eliminarRol
