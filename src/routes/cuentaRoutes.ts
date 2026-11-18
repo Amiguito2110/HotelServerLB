@@ -2,6 +2,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { cuentaController } from '../controllers/cuentaController';
 import { validarToken } from '../middleware/auth';
+import { autorizarRoles, RolUsuario } from '../middleware/autorizarRoles';
 
 // SEGURIDAD [CODE-01]:
 // Se elimina temporalmente la importación de validarToken.
@@ -91,6 +92,18 @@ class CuentaRoutes {
             '/crear_cuenta/',
             evitarCache,
             cuentaController.crear_cuenta
+        );
+
+
+        // SEGURIDAD [AUTH-ADMIN-01]:
+        // Solo Administradores autenticados pueden
+        // registrar cuentas de recepcionistas.
+        this.router.put(
+            '/crear_recepcionista/',
+            validarToken,
+            autorizarRoles(RolUsuario.ADMINISTRADOR),
+            evitarCache,
+            cuentaController.crear_recepcionista
         );
 
         // ==========================================

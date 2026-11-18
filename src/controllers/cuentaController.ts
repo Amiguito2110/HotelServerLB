@@ -4,6 +4,7 @@ import pool from '../database';
 // SEGURIDAD [JWT-01]: Generar el token de acceso solamente después de validar credenciales.
 import { generarTokenAcceso } from '../middleware/auth';
 
+
 // SEGURIDAD [DATA-01]: Evitar SELECT * y excluir el hash de las respuestas.
 const CAMPOS_PUBLICOS = 'IDCuenta, NombreCompleto, CorreoElectronico, Rol, NumeroTelefono, Foto';
 
@@ -194,6 +195,52 @@ class CuentaController {
             res.json(resp); // Mantiene affectedRows para RegistroComponent.
         } catch (error) {
             responderError(res, 'crear_cuenta', error);
+        }
+    }
+
+
+    // SEGURIDAD [AUTH-ADMIN-01, VAL-02, PRIV-01]:
+    // Crear recepcionistas únicamente mediante la ruta
+    // protegida con autenticación y rol Administrador.
+    public async crear_recepcionista(
+        req: Request,
+        res: Response
+    ): Promise<void> {
+
+        const datos = obtenerDatos(req);
+
+        const nombre = validarTexto(datos.NombreCompleto, 100);
+        const correo = validarCorreo(datos.CorreoElectronico);
+        const telefono = validarTelefono(datos.NumeroTelefono);
+        const contrasena = validarContrasenaNueva(datos.Contrasena);
+
+        if (!nombre || !correo || !telefono || !contrasena) {
+            res.status(400).json({
+                mensaje: 'Datos de registro inválidos.'
+            });
+            return;
+        }
+
+        try {
+            const hash = await bcrypt.hash(contrasena, 10);
+
+            // El servidor asigna Rol = 2.
+            // Nunca se toma el rol desde Angular.
+            const resp = await pool.query(
+                `INSERT INTO cuenta
+                (NombreCompleto, CorreoElectronico,
+                NumeroTelefono, Contrasena, Rol)
+                VALUES (?, ?, ?, ?, ?)`,
+                [nombre, correo, telefono, hash, 2]
+            );
+
+            res.status(201).json({
+                mensaje: 'Recepcionista creado correctamente.',
+                IDCuenta: resp.insertId
+            });
+
+        } catch (error) {
+            responderError(res, 'crear_recepcionista', error);
         }
     }
 
