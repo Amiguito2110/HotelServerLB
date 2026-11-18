@@ -1,6 +1,7 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { cuentaController } from '../controllers/cuentaController';
+import { validarToken } from '../middleware/auth';
 
 // SEGURIDAD [CODE-01]:
 // Se elimina temporalmente la importación de validarToken.
@@ -206,6 +207,18 @@ class CuentaRoutes {
             validarIdCuenta,
             evitarCache,
             cuentaController.set_foto_cero
+        );
+
+        // SEGURIDAD [JWT-TEST]: Ruta temporal para probar JWT.
+        this.router.get(
+            '/verificar-token/',
+            validarToken,
+            (req: Request, res: Response) => {
+                res.json({
+                    mensaje: 'Token válido.',
+                    idCuenta: res.locals.usuarioAutenticado.idCuenta
+                });
+            }
         );
     }
 }
