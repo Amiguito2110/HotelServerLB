@@ -1,17 +1,14 @@
-
 import { Router, Request, Response, NextFunction } from 'express';
 import { cuentaController } from '../controllers/cuentaController';
 import { validarToken } from '../middleware/auth';
 import { autorizarRoles, RolUsuario } from '../middleware/autorizarRoles';
+// SEGURIDAD [AUTH-CUENTA-01]:
+// Nuevo middleware para comprobar la propiedad.
+import { autorizarCuentaPropiaOAdmin } from '../middleware/autorizarCuenta';
 
-// SEGURIDAD [CODE-01]:
-// Se elimina temporalmente la importación de validarToken.
-// La autenticación se integrará cuando el middleware JWT
-// y la autorización por roles estén correctamente implementados.
 
 // SEGURIDAD [VAL-01]:
-// Middleware para validar identificadores de cuentas.
-// Solo permite enteros positivos y seguros.
+// Validación de identificadores de cuentas.
 const validarIdCuenta = (
     req: Request,
     res: Response,
@@ -39,9 +36,9 @@ const validarIdCuenta = (
     next();
 };
 
+
 // SEGURIDAD [HTTP-01]:
-// Evita que las respuestas sensibles se almacenen
-// en cachés HTTP que respeten esta cabecera.
+// Evitar almacenamiento de respuestas sensibles.
 const evitarCache = (
     req: Request,
     res: Response,
@@ -52,8 +49,7 @@ const evitarCache = (
     next();
 };
 
-// MEJORA [CODE-02]:
-// Nombre de la clase relacionado con su funcionalidad.
+
 class CuentaRoutes {
 
     public router: Router = Router();
@@ -68,26 +64,25 @@ class CuentaRoutes {
         // ACTUALIZACIÓN DE CUENTAS
         // ==========================================
 
-        // SEGURIDAD [VAL-01, HTTP-01]:
-        // Se valida el ID y se desactiva la caché.
-        // PENDIENTE [AUTH-01, AUTH-02]:
-        // Comprobar identidad y permisos sobre la cuenta.
+        // SEGURIDAD [AUTH-CUENTA-01]:
+        // Solo propietario o Administrador.
         this.router.put(
             '/actualizar_cuenta/:id',
-            validarIdCuenta,
             evitarCache,
+            validarToken,
+            validarIdCuenta,
+            autorizarCuentaPropiaOAdmin,
             cuentaController.actualizar_cuenta
         );
 
+
         // ==========================================
-        // REGISTRO DE CUENTAS
+        // REGISTRO PÚBLICO DE CUENTAS
         // ==========================================
 
-        // PENDIENTE [PRIV-01]:
-        // El registro público deberá asignar Rol = 3
-        // desde el controller, ignorando el rol enviado.
-        // La creación de recepcionistas requiere
-        // un endpoint administrativo independiente.
+        // SEGURIDAD [PRIV-01]:
+        // Registro público únicamente para Clientes.
+        // IMPORTANTE: el controller debe imponer Rol = 3.
         this.router.put(
             '/crear_cuenta/',
             evitarCache,
@@ -95,149 +90,163 @@ class CuentaRoutes {
         );
 
 
+        // ==========================================
+        // CREACIÓN DE RECEPCIONISTAS
+        // ==========================================
+
         // SEGURIDAD [AUTH-ADMIN-01]:
-        // Solo Administradores autenticados pueden
-        // registrar cuentas de recepcionistas.
+        // CONSERVAMOS TU ENDPOINT YA IMPLEMENTADO.
+        // Solo Administradores pueden crear recepcionistas.
         this.router.put(
             '/crear_recepcionista/',
+            evitarCache,
             validarToken,
             autorizarRoles(RolUsuario.ADMINISTRADOR),
-            evitarCache,
             cuentaController.crear_recepcionista
         );
+
 
         // ==========================================
         // ELIMINACIÓN DE CUENTAS
         // ==========================================
 
-        // SEGURIDAD [VAL-01]:
-        // Valida el identificador antes del controlador.
-        // PENDIENTE [AUTH-01, AUTH-02]:
-        // Restringir la eliminación a usuarios autorizados.
+        // SEGURIDAD [AUTH-ADMIN-02]:
+        // Solo Administradores pueden eliminar cuentas.
         this.router.delete(
             '/eliminar_cuenta/:id',
+            evitarCache,
+            validarToken,
             validarIdCuenta,
+            autorizarRoles(RolUsuario.ADMINISTRADOR),
             cuentaController.eliminar_cuenta
         );
+
 
         // ==========================================
         // CONSULTA DE CUENTAS
         // ==========================================
 
-        // SEGURIDAD [VAL-01, HTTP-01]:
-        // ID validado y respuesta sin caché.
-        // PENDIENTE [AUTH-02, DATA-01]:
-        // Verificar permisos de acceso a los datos.
+        // SEGURIDAD [AUTH-CUENTA-02]:
+        // Consultar cuenta propia o siendo Administrador.
         this.router.get(
             '/mostrar_cuenta/:id',
-            validarIdCuenta,
             evitarCache,
+            validarToken,
+            validarIdCuenta,
+            autorizarCuentaPropiaOAdmin,
             cuentaController.mostrar_cuenta
         );
 
-        // SEGURIDAD [HTTP-01]:
-        // Evitar caché de información de cuentas.
-        // PENDIENTE [AUTH-01, DATA-01]:
-        // Restringir a los roles administrativos.
+
+        // SEGURIDAD [AUTH-ADMIN-03]:
+        // Listado reservado para Administradores.
         this.router.get(
             '/mostrar_todas_cuentas/',
             evitarCache,
+            validarToken,
+            autorizarRoles(RolUsuario.ADMINISTRADOR),
             cuentaController.mostrar_todas_cuentas
         );
+
 
         // ==========================================
         // INICIO DE SESIÓN
         // ==========================================
 
-        // SEGURIDAD [HTTP-01]:
-        // Evita almacenar la respuesta en caché.
-        // Este endpoint debe permanecer accesible
-        // sin token para permitir el inicio de sesión.
+        // SEGURIDAD [JWT-LOGIN]:
+        // El inicio de sesión debe continuar siendo público.
         this.router.post(
             '/validar_cuenta/',
             evitarCache,
             cuentaController.validar_cuenta
         );
 
+
         // ==========================================
         // COMPROBACIÓN DE CORREOS
         // ==========================================
 
-        // SEGURIDAD [HTTP-01]:
-        // Evitar caché de las respuestas.
         // PENDIENTE [ENUM-01]:
-        // Limitar solicitudes y revisar las respuestas.
+        // Limitar intentos y evitar enumeración de cuentas.
         this.router.post(
             '/correo_existe/',
             evitarCache,
             cuentaController.correo_existe
         );
 
-        // PENDIENTE [ENUM-01]:
-        // Valorar sustituir el correo de la URL
-        // por una solicitud POST al rediseñar Angular.
+
         this.router.get(
             '/correo_existe2/:correo2',
             evitarCache,
             cuentaController.correo_existe2
         );
 
+
         // ==========================================
         // CORREOS DE USUARIOS
         // ==========================================
 
-        // SEGURIDAD [HTTP-01]:
-        // Evitar caché de información sensible.
-        // PENDIENTE [AUTH-01, DATA-01]:
-        // Restringir el listado de correos.
+        // SEGURIDAD [AUTH-ADMIN-04]:
+        // Acceso exclusivo de Administradores.
         this.router.get(
             '/correos_usuarios/',
             evitarCache,
+            validarToken,
+            autorizarRoles(RolUsuario.ADMINISTRADOR),
             cuentaController.mostrar_correos_usuarios
         );
+
 
         // ==========================================
         // FOTOGRAFÍAS DE CUENTAS
         // ==========================================
 
-        // SEGURIDAD [VAL-01]:
-        // Verificar que el ID sea válido.
-        // PENDIENTE [AUTH-02]:
-        // Validar que pueda modificar la fotografía.
+        // SEGURIDAD [AUTH-CUENTA-03]:
+        // Modificación de fotografía propia o Admin.
         this.router.put(
             '/actualizarFoto/:id',
-            validarIdCuenta,
             evitarCache,
+            validarToken,
+            validarIdCuenta,
+            autorizarCuentaPropiaOAdmin,
             cuentaController.actualizarFoto
         );
 
-        // SEGURIDAD [VAL-01]:
-        // Verificar que el ID sea válido.
-        // PENDIENTE [AUTH-02]:
-        // Verificar la propiedad de la cuenta.
+
+        // SEGURIDAD [AUTH-CUENTA-04]:
+        // Eliminación de fotografía propia o Admin.
         this.router.put(
             '/set_foto_cero/:id',
-            validarIdCuenta,
             evitarCache,
+            validarToken,
+            validarIdCuenta,
+            autorizarCuentaPropiaOAdmin,
             cuentaController.set_foto_cero
         );
 
-        // SEGURIDAD [JWT-TEST]: Ruta temporal para probar JWT.
+
+        // ==========================================
+        // PRUEBA TEMPORAL JWT
+        // ==========================================
+
+        // SEGURIDAD [JWT-TEST]:
+        // Conservar temporalmente para pruebas.
         this.router.get(
             '/verificar-token/',
+            evitarCache,
             validarToken,
-            (req: Request, res: Response) => {
+            (req: Request, res: Response): void => {
+
                 res.json({
                     mensaje: 'Token válido.',
-                    idCuenta: res.locals.usuarioAutenticado.idCuenta
+                    idCuenta:
+                        res.locals.usuarioAutenticado.idCuenta
                 });
             }
         );
     }
 }
 
-// MEJORA [CODE-02]:
-// Se utiliza un nombre descriptivo.
 const cuentaRoutes = new CuentaRoutes();
 
 export default cuentaRoutes.router;

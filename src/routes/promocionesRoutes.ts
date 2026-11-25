@@ -1,5 +1,10 @@
 import { Router } from 'express';
 import { promocionesController } from '../controllers/promocionesController';
+import { validarToken } from '../middleware/auth';
+import {
+    autorizarRoles,
+    RolUsuario
+} from '../middleware/autorizarRoles';
 
 class PromocionesRoutes {
 
@@ -9,27 +14,30 @@ class PromocionesRoutes {
         this.config();
     }
 
-    // MITIGACIÓN CODE-01:
-    // Se uniforma la declaración del método config().
     config(): void {
 
-        // MITIGACIÓN CODE-02:
-        // Se organiza el formato de las rutas.
-        // Consultar todas las promociones.
+        // SEGURIDAD [PROM-PUB-01]:
+        // La consulta de promociones sigue siendo pública.
         this.router.get(
             '/mostrarTodasPromociones/',
             promocionesController.mostrarTodasPromociones
         );
 
-        // Agregar nuevas promociones.
+        // SEGURIDAD [PROM-AUTH-01]:
+        // Solo el Administrador puede crear promociones.
         this.router.post(
             '/agregarPromociones/',
+            validarToken,
+            autorizarRoles(RolUsuario.ADMINISTRADOR),
             promocionesController.agregarPromociones
         );
 
-        // Eliminar una promoción mediante su identificador.
+        // SEGURIDAD [PROM-AUTH-02]:
+        // Solo el Administrador puede eliminar promociones.
         this.router.delete(
             '/eliminarPromocion/:id',
+            validarToken,
+            autorizarRoles(RolUsuario.ADMINISTRADOR),
             promocionesController.eliminarPromocion
         );
     }

@@ -1,16 +1,10 @@
-
 import { Router } from 'express';
 import { inventario_tiendaController } from '../controllers/inventario_tiendaController';
 import { categoriaController } from '../controllers/categoriasController';
-
-// SEGURIDAD [CODE-01]:
-// Se retira temporalmente la importación de validarToken,
-// ya que todavía no se aplica en los endpoints.
-// La autenticación y autorización se integrarán después
-// de revisar y corregir el middleware correspondiente.
+import { validarToken } from '../middleware/auth';
+import { autorizarRoles, RolUsuario } from '../middleware/autorizarRoles';
 
 class Inventario_tiendaRoutes {
-
     public router: Router = Router();
 
     constructor() {
@@ -18,71 +12,67 @@ class Inventario_tiendaRoutes {
     }
 
     config(): void {
-
-        // ==========================================
-        // RUTAS DE INVENTARIO
-        // ==========================================
-
-        // PENDIENTE [AUTH-01, AUTH-02]:
-        // Agregar autenticación y autorización administrativa.
-
+        // SEGURIDAD [AUTH-01]: solo Administrador puede modificar inventario.
         this.router.put(
-        '/actualizar_tienda/:id',
+            '/actualizar_tienda/:id',
+            validarToken,
+            autorizarRoles(RolUsuario.ADMINISTRADOR),
             inventario_tiendaController.editar_producto
         );
-
         this.router.post(
             '/agregar_producto/',
+            validarToken,
+            autorizarRoles(RolUsuario.ADMINISTRADOR),
             inventario_tiendaController.agregar_producto
         );
-
         this.router.delete(
             '/eliminar_producto/:id',
+            validarToken,
+            autorizarRoles(RolUsuario.ADMINISTRADOR),
             inventario_tiendaController.eliminar_producto
         );
 
+        // Catálogo público: no incluye precio_compra.
         this.router.get(
             '/mostrar_todos_productos/',
             inventario_tiendaController.mostrar_productos
         );
 
-        // ==========================================
-        // RUTAS DE CATEGORÍAS
-        // ==========================================
+        // Vista interna para administradores (con precio_compra).
+        this.router.get(
+            '/mostrar_todos_productos_admin/',
+            validarToken,
+            autorizarRoles(RolUsuario.ADMINISTRADOR),
+            inventario_tiendaController.mostrar_productos_admin
+        );
 
-        // SEGURIDAD [VAL-01]:
-        // Los identificadores recibidos por estas rutas
-        // se validan en categoriasController.ts.
-
-        // PENDIENTE [AUTH-01, AUTH-02]:
-        // Las operaciones administrativas deberán
-        // protegerse mediante autenticación y permisos.
-
+        // SEGURIDAD [AUTH-02]: controlar también los endpoints de categorías.
         this.router.put(
             '/actualizar_categoria/:id',
+            validarToken,
+            autorizarRoles(RolUsuario.ADMINISTRADOR),
             categoriaController.editarCategoria
         );
-
         this.router.post(
             '/crear_categoria/',
+            validarToken,
+            autorizarRoles(RolUsuario.ADMINISTRADOR),
             categoriaController.agregarCategoria
         );
-
-        // CORRECCIÓN [ROUTE-01]:
-        // Se agrega "/" antes de :id para reconocer
-        // correctamente el parámetro de la URL.
         this.router.delete(
             '/eliminar_categoria/:id',
+            validarToken,
+            autorizarRoles(RolUsuario.ADMINISTRADOR),
             categoriaController.eliminarCategoria
         );
-
         this.router.get(
             '/mostrar_categorias/',
+            validarToken,
+            autorizarRoles(RolUsuario.ADMINISTRADOR),
             categoriaController.mostrarCategorias
         );
     }
 }
 
 const inventario_tiendaRoutes = new Inventario_tiendaRoutes();
-
 export default inventario_tiendaRoutes.router;
